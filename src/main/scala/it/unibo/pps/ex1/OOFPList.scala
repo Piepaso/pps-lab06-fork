@@ -1,5 +1,7 @@
 package it.unibo.pps.ex1
 
+import scala.annotation.tailrec
+
 // List as a pure interface
 enum List[A]:
   case ::(h: A, t: List[A])
@@ -33,8 +35,7 @@ enum List[A]:
   def append(list: List[A]): List[A] =
     foldRight(list)(_ :: _)
 
-  def flatMap[B](f: A => List[B]): List[B] =
-    foldRight(Nil())(f(_) append _)
+  def flatMap[B](f: A => List[B]): List[B] = foldLeft(Nil())((l, v) => l.append(f(v)))
 
   def filter(predicate: A => Boolean): List[A] = flatMap(a => if predicate(a) then a :: Nil() else Nil())
 
@@ -45,14 +46,63 @@ enum List[A]:
     case h :: t => t.foldLeft(h)(op)
   
   // Exercise: implement the following methods
-  def zipWithValue[B](value: B): List[(A, B)] = ???
-  def length(): Int = ???
-  def indices(): List[A] = ???
-  def zipWithIndex: List[(A, Int)] = ???
-  def partition(predicate: A => Boolean): (List[A], List[A]) = ???
-  def span(predicate: A => Boolean): (List[A], List[A]) = ???
+    /*
+  def zipWithValue[B](value: B): List[(A, B)] = this match
+    case h :: t => (h, value) :: t.zipWithValue(value)
+    case _ => Nil()
+
+  def length(): Int = this match
+    case h :: t => 1 + t.length()
+    case _ => 0
+
+  private def _indices(i: Int): List[Int] = this match
+    case h :: t => i :: t._indices(i + 1)
+    case _ => Nil()
+
+  def indices(): List[Int] = this._indices(0)
+
+  private def _zipWithIndex(i: Int): List[(A, Int)] = this match
+    case h :: t => (h, i) :: t._zipWithIndex(i + 1)
+    case _ => Nil()
+
+  def zipWithIndex: List[(A, Int)] = this._zipWithIndex(0)
+
+  def partition(predicate: A => Boolean): (List[A], List[A]) = this match
+    case h :: t if predicate(h) => (h :: t.partition(predicate)._1, t.partition(predicate)._2)
+    case h :: t => (t.partition(predicate)._1, h :: t.partition(predicate)._2)
+    case _ => (Nil(), Nil())
+
+  def span(predicate: A => Boolean): (List[A], List[A]) = this match
+    case h :: t if predicate(h) => (h :: t.span(predicate)._1, t.span(predicate)._2)
+    case h :: t => (t.span(_ => false)._1, h :: t.span(_ => false)._2)
+    case _ => (Nil(), Nil())
+
   def takeRight(n: Int): List[A] = ???
+
+  def collect(predicate: PartialFunction[A, A]): List[A] = ???*/
+
+
+  def zipWithValue[B](value: B): List[(A, B)] = foldRight(Nil())((h, acc) => (h, value) :: acc)
+
+  def length(): Int = foldLeft(0)((i, l) => i + 1)
+
+  def indices(): List[Int] =
+    foldLeft((length() - 1, Nil()): (Int, List[Int]))((acc, h) => (acc._1 - 1, acc._1 :: acc._2))._2
+
+  def zipWithIndex(i: Int): List[(A, Int)] =
+    foldRight((length() - 1, Nil()): (Int, List[(A, Int)]))((h, acc) => (acc._1 - 1, (h, acc._1) :: acc._2))._2
+
+  def partition(predicate: A => Boolean): (List[A], List[A]) =
+    foldRight((Nil(), Nil()))((h, acc) =>  if predicate(h) then (h :: acc._1, acc._2) else (acc._1, h :: acc._2))
+
+  def span(predicate: A => Boolean): (List[A], List[A]) =
+    foldRight((Nil(), Nil()))((h, acc) =>  if predicate(h) then (h :: acc._1, acc._2) else (acc._1, h :: acc._2))
+
+  def takeRight(n: Int): List[A] = ???
+
   def collect(predicate: PartialFunction[A, A]): List[A] = ???
+
+
 // Factories
 object List:
 
