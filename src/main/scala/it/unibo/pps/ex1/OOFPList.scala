@@ -44,9 +44,11 @@ enum List[A]:
   def reduce(op: (A, A) => A): A = this match
     case Nil() => throw new IllegalStateException()
     case h :: t => t.foldLeft(h)(op)
+
+  def reverse(): List[A] = foldLeft(Nil())((acc, h) => h ::acc)
   
   // Exercise: implement the following methods
-    /*
+
   def zipWithValue[B](value: B): List[(A, B)] = this match
     case h :: t => (h, value) :: t.zipWithValue(value)
     case _ => Nil()
@@ -77,30 +79,44 @@ enum List[A]:
     case h :: t => (t.span(_ => false)._1, h :: t.span(_ => false)._2)
     case _ => (Nil(), Nil())
 
-  def takeRight(n: Int): List[A] = ???
+  private def _takeRight(i: Int, l: List[A]): List[A] = (this, l) match
+    case (h :: t, l) if i > 0 => t._takeRight(i - 1, l)
+    case (h :: t, h1 :: t1) => t._takeRight(0, t1)
+    case (Nil(), h :: t) => h :: Nil()._takeRight(0, t)
+    case _ => Nil()
 
-  def collect(predicate: PartialFunction[A, A]): List[A] = ???*/
+  def takeRight(n: Int): List[A] = _takeRight(n, this)
+
+  def collect(predicate: PartialFunction[A, A]): List[A] = this match
+    case h :: t if predicate.isDefinedAt(h) => predicate(h) :: t.collect(predicate)
+    case _ :: t => t.collect(predicate)
+    case _ => Nil()
 
 
-  def zipWithValue[B](value: B): List[(A, B)] = foldRight(Nil())((h, acc) => (h, value) :: acc)
+  /*def zipWithValue[B](value: B): List[(A, B)] = foldRight(Nil())((h, acc) => (h, value) :: acc)
 
   def length(): Int = foldLeft(0)((i, l) => i + 1)
 
   def indices(): List[Int] =
     foldLeft((length() - 1, Nil()): (Int, List[Int]))((acc, h) => (acc._1 - 1, acc._1 :: acc._2))._2
 
-  def zipWithIndex(i: Int): List[(A, Int)] =
+  def zipWithIndex: List[(A, Int)] =
     foldRight((length() - 1, Nil()): (Int, List[(A, Int)]))((h, acc) => (acc._1 - 1, (h, acc._1) :: acc._2))._2
 
-  def partition(predicate: A => Boolean): (List[A], List[A]) =
-    foldRight((Nil(), Nil()))((h, acc) =>  if predicate(h) then (h :: acc._1, acc._2) else (acc._1, h :: acc._2))
+  def partition(predicate: A => Boolean): (List[A], List[A]) = partitionAnd(predicate)(_ => true)
 
-  def span(predicate: A => Boolean): (List[A], List[A]) =
-    foldRight((Nil(), Nil()))((h, acc) =>  if predicate(h) then (h :: acc._1, acc._2) else (acc._1, h :: acc._2))
+  def span(predicate: A => Boolean): (List[A], List[A]) = partitionAnd(predicate)(acc => acc._2 == Nil())
 
-  def takeRight(n: Int): List[A] = ???
+  private def partitionAnd(pHead: A => Boolean)(pAcc: ((List[A], List[A])) => Boolean): (List[A], List[A]) =
+    val (l, r) = foldLeft((Nil(): List[A], Nil(): List[A]))((acc, h) =>
+      if pHead(h) && pAcc(acc) then (h :: acc._1, acc._2) else (acc._1, h :: acc._2))
+    (l.reverse(), r.reverse())
 
-  def collect(predicate: PartialFunction[A, A]): List[A] = ???
+  def takeRight(n: Int): List[A] =
+    foldRight((0, Nil(): List[A]))((h, acc) => if acc._1 < n then (acc._1 + 1, h :: acc._2) else acc)._2
+
+  def collect(predicate: PartialFunction[A, A]): List[A] =
+    foldRight(Nil())((h, acc) => if predicate.isDefinedAt(h) then predicate(h) :: acc else acc)*/
 
 
 // Factories
@@ -115,7 +131,6 @@ object List:
     if n == 0 then Nil() else elem :: of(elem, n - 1)
 
 object Test extends App:
-  import List.*
   val reference = List(1, 2, 3, 4)
   println(reference.zipWithValue(10)) // List((1, 10), (2, 10), (3, 10), (4, 10))
   println(reference.length()) // 4
